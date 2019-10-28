@@ -5,8 +5,10 @@ from sql.conditionals import Coalesce
 from sql.aggregate import Count, Max
 
 from trytond.pool import Pool
+from trytond.pyson import Eval, If, Bool
 from trytond.transaction import Transaction
 from trytond.model import ModelSQL, ModelView, fields
+from trytond.model import Unique
 
 
 __all__ = [
@@ -70,20 +72,30 @@ class Author(ModelSQL, ModelView):
 
     books = fields.One2Many('library.book', 'author', 'Books')
     name = fields.Char('Name', required=True)
-    birth_date = fields.Date('Birth date')
-    death_date = fields.Date('Death date')
+    birth_date = fields.Date('Birth date', 
+        states={'required': Bool(Eval('death_date', 'False'))},
+        depends=['death_date'])
+    death_date = fields.Date('Death date',
+                             domain=['OR', ('death_date', '=', None),
+                                     ('death_date', '>', Eval('birth_date'))
+                                    ],
+                             states={'invisible': ~Eval('birth_date')},
+                             depends=['birth_date'])
+                            })
     gender = fields.Selection([('man', 'Man'), ('woman', 'Woman')], 'Gender')
     age = fields.Function(
-        fields.Integer('Age'),
+        fields.Integer('Age', states={'invisible': ~Eval('death_date')}),
         'getter_age')
     number_of_books = fields.Function(
         fields.Integer('Number of books'),
         'getter_number_of_books')
     genres = fields.Function(
         fields.Many2Many('library.genre', None, None, 'Genres'),
+        states=('invisible': ~Eval('books', False)),
         'getter_genres', searcher='searcher_genres')
     latest_book = fields.Function(
         fields.Many2One('library.book', 'Latest Book'),
+        states=('invisible':~Eval('books', False)),
         'getter_latest_book')
 
     def getter_age(self, name):
@@ -157,7 +169,11 @@ class Book(ModelSQL, ModelView):
     genre = fields.Many2One('library.genre', 'Genre', ondelete='RESTRICT',
         required=False)
     editor = fields.Many2One('library.editor', 'Editor', ondelete='RESTRICT',
-        required=True)
+        domain=[If(
+                Bool(Eval('publishing_date', False)),
+                [('creation_date', '<=', Eval('publishing_date'))],
+                [])],
+        required=True, depends=['publishing_date'])
     isbn = fields.Char('ISBN', size=13,
         help='The International Standard Book Number')
     publishing_date = fields.Date('Publishing date')
@@ -198,6 +214,33 @@ class Book(ModelSQL, ModelView):
         for book_id, count in cursor.fetchall():
             result[book_id] = count
         return result
+    
+    @classmethod
+    def __settup__(cls):
+        super().__setup__()
+        cls._error_messages.update({
+                'invalid_isbn': 'ISBN should only be digits',
+                'bad_isbn_size': 'ISBN must have 13 digits',
+                }))
+        t=cls.__table__()
+        cls._sql_constraints += [
+            ('author_title_uniq', Unique(t, t.author, t.title),
+                 'The author/title pair must be unique!'),
+            ]
+    
+    @classmethod
+    def validate(cls, books):
+        for book in books:
+            if not book.isbn:
+                continue
+            try:
+                if int(book.isbn) < 0:
+                    raise ValueError
+            except ValueError:
+                cls.raise_user_error('invalid_isbn')
+            if len(book.isbn) != 13:
+                cls.raise_user_error('bad_isbn_size')
+
 
 
 class Exemplary(ModelSQL, ModelView):
@@ -209,7 +252,19 @@ class Exemplary(ModelSQL, ModelView):
         required=True)
     identifier = fields.Char('Identifier', required=True)
     acquisition_date = fields.Date('Acquisition Date')
-    acquisition_price = fields.Numeric('Acquisition Price', digits=(16, 2))
+    acquisition_price = fields.Numeric('Acquisition Price', digits=(16, 2),
+        domain=['OR', ('acquisition_price', '=', None), 
+            ('acquisition_price', '>', 0)])
 
     def get_rec_name(self, name):
         return '%s: %s' % (self.book.rec_name, self.identifier)
+
+    @classmethod
+    def __setup__(cls):
+        super().__setup__()
+        t = cls.__table__()
+        cls._sql_constraints += [
+            ('identifier_uniq', Unique(t, t.identifier),
+                'The identifier must be unique!'),
+            ]
+
