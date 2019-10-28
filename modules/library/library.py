@@ -9,7 +9,7 @@ from trytond.transaction import Transaction
 from trytond.model import ModelSQL, ModelView, fields
 from trytond.model import Unique
 from trytond.pyson import Eval, If, Bool
-
+from trytond.exceptions import UserError
 
 __all__ = [
     'Genre',
@@ -98,35 +98,6 @@ class Author(ModelSQL, ModelView):
             states={'invisible': ~Eval('books', False)}),
         'getter_latest_book')
 
-    @fields.depends('birth_date')
-    def on_change_birth_date(self):
-        if not self.birth_date:
-            self.death_date = None
-
-    @fields.depends('books')
-    def on_change_books(self):
-        if not self.books:
-            self.genres = []
-            self.number_of_books = 0
-            return
-        self.number_of_books, genres = 0, set()
-        for book in self.books:
-            self.number_of_books += 1
-            if book.genre:
-                genres.add(book.genre)
-        self.genres = list(genres)
-
-    @fields.depends('birth_date', 'death_date')
-    def on_change_with_age(self, name=None):
-        if not self.birth_date:
-            return None
-        end_date = self.death_date or datetime.date.today()
-        age = end_date.year - self.birth_date.year
-        if (end_date.month, end_date.day) < (
-                self.birth_date.month, self.birth_date.day):
-            age -= 1
-        return age
-
     def getter_genres(self, name):
         genres = set()
         for book in self.books:
@@ -174,7 +145,35 @@ class Author(ModelSQL, ModelView):
     def searcher_genres(cls, name, clause):
         return []
 
+    @fields.depends('birth_date', 'death_date')
+    def on_change_with_age(self, name=None):
+        if not self.birth_date:
+            return None
+        end_date = self.death_date or datetime.date.today()
+        age = end_date.year - self.birth_date.year
+        if (end_date.month, end_date.day) < (
+                self.birth_date.month, self.birth_date.day):
+            age -= 1
+        return age
 
+    @fields.depends('books')
+    def on_change_books(self):
+        if not self.books:
+            self.genres = []
+            self.number_of_books = 0
+            return
+        self.number_of_books, genres = 0, set()
+        for book in self.books:
+            self.number_of_books += 1
+            if book.genre:
+                genres.add(book.genre)
+        self.genres = list(genres)
+
+    @fields.depends('birth_date')
+    def on_change_birth_date(self):
+        if not self.birth_date:
+            self.death_date = None
+        
 class Book(ModelSQL, ModelView):
     'Book'
     __name__ = 'library.book'
@@ -219,11 +218,6 @@ class Book(ModelSQL, ModelView):
             ('author_title_uniq', Unique(t, t.author, t.title),
                 'The title must be unique per author!'),
             ]
-        cls._error_messages.update({
-                'invalid_isbn': 'ISBN should only be digits',
-                'bad_isbn_size': 'ISBN must have 13 digits',
-                'invalid_isbn_checksum': 'ISBN checksum invalid',
-                })
 
     @classmethod
     def validate(cls, books):
@@ -234,39 +228,14 @@ class Book(ModelSQL, ModelView):
                 if int(book.isbn) < 0:
                     raise ValueError
             except ValueError:
-                cls.raise_user_error('invalid_isbn')
+                raise UserError('invalid_isbn')
             if len(book.isbn) != 13:
-                cls.raise_user_error('bad_isbn_size')
+                raise UserError('bad_isbn_size')
             checksum = 0
             for idx, digit in enumerate(book.isbn):
                 checksum += int(digit) * (1 if idx % 2 else 3)
             if checksum % 10:
-                cls.raise_user_error('invalid_isbn_checksum')
-
-    @classmethod
-    def default_exemplaries(cls):
-        return [{}]
-
-    @fields.depends('editor', 'genre')
-    def on_change_editor(self):
-        if not self.editor:
-            return
-        if self.genre and self.genre not in self.editor.genres:
-            self.genre = None
-        if not self.genre and len(self.editor.genres) == 1:
-            self.genre = self.editor.genres[0]
-
-    @fields.depends('description', 'summary')
-    def on_change_with_description(self):
-        if self.description:
-            return self.description
-        if not self.summary:
-            return ''
-        return self.summary.split('.')[0]
-
-    @fields.depends('exemplaries')
-    def on_change_with_number_of_exemplaries(self):
-        return len(self.exemplaries or [])
+                raise UserError('invalid_isbn_checksum')
 
     def getter_latest_exemplary(self, name):
         latest = None
@@ -292,6 +261,31 @@ class Book(ModelSQL, ModelView):
             result[book_id] = count
         return result
 
+    @fields.depends('description', 'summary')
+    def on_change_with_description(self):
+        if self.description:
+            return self.description
+        if not self.summary:
+            return ''
+        return self.summary.split('.')[0]
+
+    @fields.depends('genre', 'editor')
+    def on_change_genre(self):
+        if not self.editor :
+            return
+        if self.genre not in self.editor.genres:
+            self.genre = None
+        if not(self.genre) and len(self.editor.genres)==1:
+            self.genre = self.editor.genres[0]
+
+    @classmethod
+    def default_exemplaries(cls):
+        return [{}]
+
+    @fields.depends('exemplaries')
+    def on_change_with_number_of_exemplaries(self):
+        return len(self.exemplaries or [])
+
 
 class Exemplary(ModelSQL, ModelView):
     'Exemplary'
@@ -315,9 +309,10 @@ class Exemplary(ModelSQL, ModelView):
                 'The identifier must be unique!'),
             ]
 
+    def get_rec_name(self, name):
+        return '%s: %s' % (self.book.rec_name, self.identifier)
+
     @classmethod
     def default_acquisition_date(cls):
         return datetime.date.today()
 
-    def get_rec_name(self, name):
-        return '%s: %s' % (self.book.rec_name, self.identifier)

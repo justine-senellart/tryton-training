@@ -1,0 +1,8 @@
+<?xml version="1.0"?>
+<form>
+    <label name="fused_book"/>
+    <field name="fused_book" colspan="3"/>
+    <label name="number_of_exemplaries"/>
+    <field name="number_of_exemplaries"/>
+</form>
+
