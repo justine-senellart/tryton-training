@@ -1,0 +1,75 @@
+<?xml version="1.0"?>
+<tryton>
+	<data>
+		<!-- ######### -->
+		<!-- # Genre # -->
+		<!-- ######### -->
+		<record model="ir.ui.view" id="genre_view_form">
+			<field name="model">library.genre</field>
+			<field name="type">form</field>
+			<field name="name">genre_form</field>
+		</record>
+		<record model="ir.ui.view" id="genre_view_list">
+			<field name="model">library.genre</field>
+			<field name="type">tree</field>
+			<field name="name">genre_list</field>
+		</record>
+
+		<!-- ########## -->
+		<!-- # Editor # -->
+		<!-- ########## -->
+		<record model="ir.ui.view" id="editor_view_form">
+			<field name="model">library.editor</field>
+			<field name="type">form</field>
+			<field name="name">editor_form</field>
+		</record>
+		<record model="ir.ui.view" id="editor_view_list">
+			<field name="model">library.editor</field>
+			<field name="type">tree</field>
+			<field name="name">editor_list</field>
+		</record>
+		
+		<!-- ########## -->
+		<!-- # Author # -->
+		<!-- ########## -->
+		<record model="ir.ui.view" id="author_view_form">
+			<field name="model">library.author</field>
+			<field name="type">form</field>
+			<field name="name">author_form</field>
+		</record>
+		<record model="ir.ui.view" id="author_view_list">
+			<field name="model">library.author</field>
+			<field name="type">tree</field>
+			<field name="name">author_list</field>
+		</record>
+		
+		<!-- ######## -->
+		<!-- # Book # -->
+		<!-- ######## -->
+		<record model="ir.ui.view" id="book_view_form">
+			<field name="model">library.book</field>
+			<field name="type">form</field>
+			<field name="name">book_form</field>
+		</record>
+		<record model="ir.ui.view" id="book_view_list">
+			<field name="model">library.book</field>
+			<field name="type">tree</field>
+			<field name="name">book_list</field>
+		</record>
+		
+		<!-- ############### -->
+		<!-- # Exemplaries # -->
+		<!-- ############### -->
+		<record model="ir.ui.view" id="exemplaries_view_form">
+			<field name="model">library.book.exemplaries</field>
+			<field name="type">form</field>
+			<field name="name">exemplaries_form</field>
+		</record>
+		<record model="ir.ui.view" id="exemplaries_view_list">
+			<field name="model">library.book.exemplaries</field>
+			<field name="type">tree</field>
+			<field name="name">exemplaries_list</field>
+		</record>
+
+	</data>
+</tryton>
