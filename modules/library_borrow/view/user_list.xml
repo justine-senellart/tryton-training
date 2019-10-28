@@ -1,0 +1,8 @@
+<?xml version="1.0"?>
+<tree>
+    <field name="identifier"/>
+    <field name="name" expand="1"/>
+    <field name="creation_date"/>
+    <field name="expected_return_date"/>
+    <field name="number_borrowed"/>
+</tree>

@@ -1,0 +1,8 @@
+<?xml version="1.0"?>
+<form>
+    <label name="user"/>
+    <field name="user" colspan="3"/>
+    <label name="return_date"/>
+    <field name="return_date" colspan="3"/>
+    <field name="borrowings" colspan="4"/>
+</form>

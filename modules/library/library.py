@@ -9,7 +9,7 @@ from trytond.transaction import Transaction
 from trytond.model import ModelSQL, ModelView, fields
 from trytond.model import Unique
 from trytond.pyson import Eval, If, Bool
-
+from trytond.exceptions import UserError, UserWarning
 
 __all__ = [
     'Genre',
@@ -219,14 +219,14 @@ class Book(ModelSQL, ModelView):
             ('author_title_uniq', Unique(t, t.author, t.title),
                 'The title must be unique per author!'),
             ]
-        cls._error_messages.update({
-                'invalid_isbn': 'ISBN should only be digits',
-                'bad_isbn_size': 'ISBN must have 13 digits',
-                'invalid_isbn_checksum': 'ISBN checksum invalid',
-                })
         cls._buttons.update({
-                'create_exemplaries': {},
-                })
+            'create_exemplaries': {},
+            })
+        #cls._error_messages.update({
+        #        'invalid_isbn': 'ISBN should only be digits',
+        #        'bad_isbn_size': 'ISBN must have 13 digits',
+        #        'invalid_isbn_checksum': 'ISBN checksum invalid',
+        #        })
 
     @classmethod
     def validate(cls, books):
@@ -237,15 +237,16 @@ class Book(ModelSQL, ModelView):
                 if int(book.isbn) < 0:
                     raise ValueError
             except ValueError:
-                cls.raise_user_error('invalid_isbn')
+                raise UserError('invalid_isbn', 'ISBN should only be digits')
             if len(book.isbn) != 13:
-                cls.raise_user_error('bad_isbn_size')
+                raise UserError('bad_isbn_size', 'ISBN must have 13 digits')
             checksum = 0
             for idx, digit in enumerate(book.isbn):
                 checksum += int(digit) * (1 if idx % 2 else 3)
             if checksum % 10:
-                cls.raise_user_error('invalid_isbn_checksum')
-
+                raise UserError('invalid_isbn_checksum', 
+                'ISBN checksum invalid')
+                
     @classmethod
     def default_exemplaries(cls):
         return [{}]
@@ -308,11 +309,13 @@ class Exemplary(ModelSQL, ModelView):
 
     book = fields.Many2One('library.book', 'Book', ondelete='CASCADE',
         required=True)
+    #borrows = fields.One2Many('library.user.borrow', 'exemplary', 'Borrows')
     identifier = fields.Char('Identifier', required=True)
     acquisition_date = fields.Date('Acquisition Date')
     acquisition_price = fields.Numeric('Acquisition Price', digits=(16, 2),
         domain=['OR', ('acquisition_price', '=', None),
             ('acquisition_price', '>', 0)])
+
 
     @classmethod
     def __setup__(cls):

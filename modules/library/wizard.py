@@ -6,6 +6,7 @@ from trytond.transaction import Transaction
 from trytond.model import ModelView, fields
 from trytond.wizard import Wizard, StateView, StateTransition, StateAction
 from trytond.wizard import Button
+from trytond.exceptions import UserError, UserWarning
 
 __all__ = [
     'CreateExemplaries',
@@ -32,14 +33,15 @@ class CreateExemplaries(Wizard):
     @classmethod
     def __setup__(cls):
         super().__setup__()
-        cls._error_messages.update({
-                'invalid_model': 'This action should be started from a book',
-                'invalid_date': 'You cannot purchase books in the future',
-                })
+        #cls._error_messages.update({
+        #        'invalid_model': 'This action should be started from a book',
+        #        'invalid_date': 'You cannot purchase books in the future',
+        #        })
 
     def default_parameters(self, name):
         if Transaction().context.get('active_model', '') != 'library.book':
-            self.raise_user_error('invalid_model')
+            raise UserError('invalid_model', 
+            'This action should be started from a book')
         return {
             'acquisition_date': datetime.date.today(),
             'book': Transaction().context.get('active_id'),
@@ -49,7 +51,8 @@ class CreateExemplaries(Wizard):
     def transition_create_exemplaries(self):
         if (self.parameters.acquisition_date and
                 self.parameters.acquisition_date > datetime.date.today()):
-            self.raise_user_error('invalid_date')
+            raise UserError('invalid date', 
+                'You cannot purchase books in the future')
         Exemplary = Pool().get('library.book.exemplary')
         to_create = []
         while len(to_create) < self.parameters.number_of_exemplaries:
@@ -112,21 +115,23 @@ class FuseBooks(Wizard):
     @classmethod
     def __setup__(cls):
         super().__setup__()
-        cls._error_messages.update({
-                'invalid_model': 'This action should be started from a book',
-                'multiple_authors': 'You cannot fuse books with different '
-                'authors',
-                'bad_matches': 'The following fields will not be a perfect '
-                'match: %(fields)s',
-                })
+        #cls._error_messages.update({
+        #        'invalid_model': 'This action should be started from a book',
+        #        'multiple_authors': 'You cannot fuse books with different '
+        #        'authors',
+        #        'bad_matches': 'The following fields will not be a perfect '
+        #         'match: %(fields)s',
+        #        })
 
     def transition_check_authors(self):
         if Transaction().context.get('active_model', '') != 'library.book':
-            self.raise_user_error('invalid_model')
+            raise UserError('invalid_model', 'This action should be started'
+                'from a book')
         Book = Pool().get('library.book')
         books = Book.browse(Transaction().context.get('active_ids'))
         if len({x.author for x in books}) != 1:
-            self.raise_user_error('multiple_authors')
+             raise UserError('multiple_authors', 'You cannot fuse bookd with'
+                ' different authors')
         return 'select_main'
 
     def default_select_main(self, name):
@@ -144,10 +149,16 @@ class FuseBooks(Wizard):
     def transition_check_compatibility(self):
         values = self._get_merge_values()
         bad_matches = [k for k, v in values.items() if not v[1]]
-        if bad_matches:
-            self.raise_user_warning('bad_matches_warning' + str(
-                    self.select_main.main_book.id), 'bad_matches',
-                {'fields': ', '.join(bad_matches)})
+        Warning = Pool().get('res.user.warning')
+        bad_matches = 'bad_matches.%s' % self
+        #if bad_matches:
+        if Warning.check(bad_matches):
+            #self.raise_user_warning('bad_matches_warning' + str(
+            #       self.select_main.main_book.id), 'bad_matches',
+            #    {'fields': ', '.join(bad_matches)})
+            #raise UserWarning('bad_matches', 
+            #    str({'fields': ''.join(bad_matches)}))
+            return 'preview'
         return 'preview'
 
     def _get_merge_fields(self):

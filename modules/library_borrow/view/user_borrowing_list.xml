@@ -1,0 +1,8 @@
+<?xml version="1.0"?>
+<form>
+    <field name="user" expand="1"/>
+    <field name="exemplary" expand="1"/>
+    <field name="borrowing_date"/>
+    <field name="expected_return_date"/>
+    <field name="return_date"/>
+</form>

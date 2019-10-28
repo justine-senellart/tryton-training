@@ -1,0 +1,55 @@
+<?xml version="1.0"?>
+<tryton>
+    <data>
+        <!-- ############### -->
+        <!-- # Borrow Book # -->
+        <!-- ############### -->
+        <record model="ir.action.wizard" id="act_borrow_book">
+            <field name="name">Borrow Book</field>
+            <field name="wiz_name">library.user.borrow_book</field>
+        </record>
+        <record model="ir.action.keyword" id="act_user_borrow_book_keyword">
+            <field name="keyword">form_action</field>
+            <field name="model">library.user,-1</field>
+            <field name="action" ref="act_borrow_book"/>
+        </record>
+        <record model="ir.action.keyword" id="act_book_borrow_book_keyword">
+            <field name="keyword">form_action</field>
+            <field name="model">library.book,-1</field>
+            <field name="action" ref="act_borrow_book"/>
+        </record>
+        <!-- ######################## -->
+        <!-- # Borrow Selected Book # -->
+        <!-- ######################## -->
+        <record model="ir.ui.view" id="borrow_selected_book_view_form">
+            <field name="model">library.user.borrow_book.selected_book</field>
+            <field name="type">form</field>
+            <field name="name">borrow_selected_book_form</field>
+        </record>
+        <!-- ############### -->
+        <!-- # Return Book # -->
+        <!-- ############### -->
+        <record model="ir.action.wizard" id="act_return_book">
+            <field name="name">Return Book</field>
+            <field name="wiz_name">library.user.return_book</field>
+        </record>
+        <record model="ir.action.keyword" id="act_user_return_book_keyword">
+            <field name="keyword">form_action</field>
+            <field name="model">library.user,-1</field>
+            <field name="action" ref="act_return_book"/>
+        </record>
+        <record model="ir.action.keyword" id="act_borrowing_return_book_keyword">
+            <field name="keyword">form_action</field>
+            <field name="model">library.user.borrowing,-1</field>
+            <field name="action" ref="act_return_book"/>
+        </record>
+        <!-- ######################## -->
+        <!-- # Return Selected Book # -->
+        <!-- ######################## -->
+        <record model="ir.ui.view" id="return_selected_book_view_form">
+            <field name="model">library.user.return_book.selected_book</field>
+            <field name="type">form</field>
+            <field name="name">return_selected_book_form</field>
+        </record>
+    </data>
+</tryton>
