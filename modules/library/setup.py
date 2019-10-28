@@ -83,4 +83,4 @@ setup(name=name,
     [trytond.modules]
     library = trytond.modules.library
     """,
-    )
+)
